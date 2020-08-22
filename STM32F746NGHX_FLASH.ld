@@ -59,8 +59,8 @@ _Min_Stack_Size = 0x400 ; /* required amount of stack */
 /* Specify the memory areas */
 MEMORY
 {
-  ITCMRAM (xrw)   : ORIGIN = 0x20000000, LENGTH = 320K
-  FLASH_BK1 (rxw)  : ORIGIN = 0x80000000, LENGTH = 1024K
+  RAM (xrw)   : ORIGIN = 0x20000000, LENGTH = 320K
+  FLASH (rxw)  : ORIGIN = 0x80000000, LENGTH = 1024K
   SDRAM (xrw)     : ORIGIN = 0xC0000000, LENGTH = 8M 
   QUADSPI (xrw)    : ORIGIN = 0x90000000,  LENGTH = 16M
 }
@@ -68,21 +68,13 @@ MEMORY
 /* Define output sections */
 SECTIONS
 {
-  /* The startup code for CM7 goes first into FLASH_BK1 */
+  /* The startup code for CM7 goes first into FLASH */
   .isr_vector :
   {
     . = ALIGN(4);
     KEEP(*(.isr_vector)) /* Startup code */
     . = ALIGN(4);
-  } >FLASH_BK1
-
-   /* The startup code for CM4 goes into FLASH_BK2 
-  .isr_vector_m4 :
-  {
-    . = ALIGN(4);
-    KEEP(*(.isr_vector_m4))
-    . = ALIGN(4);
-  } >FLASH_BK1 */
+  } >FLASH
 
   /* Remaining .rodata goes into FLASH_BK2 */
   .rodata2 :
@@ -90,7 +82,7 @@ SECTIONS
     . = ALIGN(4);
     */fp_vision_display.o(.rodata)
     */fp_vision_display.o(.rodata*)
-  } >FLASH_BK1
+  } >FLASH
 
   /* The program code and other data goes into FLASH */
   .text :
@@ -107,7 +99,7 @@ SECTIONS
 
     . = ALIGN(4);
     _etext = .;        /* define a global symbols at end of code */
-  } >FLASH_BK1
+  } >FLASH
 
   /* Constant data goes into FLASH_BK1 */
   .rodata :
@@ -116,35 +108,35 @@ SECTIONS
     *(.rodata)         /* .rodata sections (constants, strings, etc.) */
     *(.rodata*)        /* .rodata* sections (constants, strings, etc.) */
     . = ALIGN(4);
-  } >FLASH_BK1
+  } >FLASH
 
   .ARM.extab   : { *(.ARM.extab* .gnu.linkonce.armextab.*) } >FLASH_BK1
   .ARM : {
     __exidx_start = .;
     *(.ARM.exidx*)
     __exidx_end = .;
-  } >FLASH_BK1
+  } >FLASH
 
   .preinit_array     :
   {
     PROVIDE_HIDDEN (__preinit_array_start = .);
     KEEP (*(.preinit_array*))
     PROVIDE_HIDDEN (__preinit_array_end = .);
-  } >FLASH_BK1
+  } >FLASH
   .init_array :
   {
     PROVIDE_HIDDEN (__init_array_start = .);
     KEEP (*(SORT(.init_array.*)))
     KEEP (*(.init_array*))
     PROVIDE_HIDDEN (__init_array_end = .);
-  } >FLASH_BK1
+  } >FLASH
   .fini_array :
   {
     PROVIDE_HIDDEN (__fini_array_start = .);
     KEEP (*(SORT(.fini_array.*)))
     KEEP (*(.fini_array*))
     PROVIDE_HIDDEN (__fini_array_end = .);
-  } >FLASH_BK1
+  } >FLASH
 
   /* used by the startup to initialize data */
   _sidata = LOADADDR(.data);
@@ -159,7 +151,7 @@ SECTIONS
 
     . = ALIGN(4);
     _edata = .;        /* define a global symbol at data end */
-  } >ITCMRAM AT> FLASH_BK1
+  } >RAM AT> FLASH
 
   
   /* Uninitialized data section */
@@ -176,7 +168,7 @@ SECTIONS
     . = ALIGN(4);
     _ebss = .;         /* define a global symbol at bss end */
     __bss_end__ = _ebss;
-  } >FLASH_BK1
+  } >FLASH
 
   /* User_heap_stack section, used to check that there is enough RAM left */
   ._user_heap_stack :
@@ -187,7 +179,7 @@ SECTIONS
     . = . + _Min_Heap_Size;
     . = . + _Min_Stack_Size;
     . = ALIGN(8);
-  } >ITCMRAM
+  } >RAM
 
   .axiram_section (NOLOAD):
   {
@@ -195,7 +187,7 @@ SECTIONS
     *(.Vision_App_SingleOverlay)
     *(.Vision_App_SingleOverlay.*)
     . = ALIGN(4);
-  } >ITCMRAM
+  } >RAM
 
   .sram_section (NOLOAD):
   {
@@ -206,7 +198,7 @@ SECTIONS
     *(.uart_rx_buffer)
     *(.uart_rx_buffer.*)
     . = ALIGN(4);
-  } >ITCMRAM
+  } >RAM
 
    .sdram_section ():
   {
