@@ -60,7 +60,7 @@ _Min_Stack_Size = 0x400 ; /* required amount of stack */
 MEMORY
 {
   RAM (xrw)   : ORIGIN = 0x20000000, LENGTH = 320K
-  FLASH (rxw)  : ORIGIN = 0x80000000, LENGTH = 1024K
+  FLASH (rxw)  : ORIGIN = 0x08000000, LENGTH = 1024K
   SDRAM (xrw)     : ORIGIN = 0xC0000000, LENGTH = 8M 
   QUADSPI (xrw)    : ORIGIN = 0x90000000,  LENGTH = 16M
 }
@@ -76,7 +76,7 @@ SECTIONS
     . = ALIGN(4);
   } >FLASH
 
-  /* Remaining .rodata goes into FLASH_BK2 */
+  /* Remaining .rodata goes into FLASH */
   .rodata2 :
   {
     . = ALIGN(4);
@@ -110,7 +110,7 @@ SECTIONS
     . = ALIGN(4);
   } >FLASH
 
-  .ARM.extab   : { *(.ARM.extab* .gnu.linkonce.armextab.*) } >FLASH_BK1
+  .ARM.extab   : { *(.ARM.extab* .gnu.linkonce.armextab.*) } >FLASH
   .ARM : {
     __exidx_start = .;
     *(.ARM.exidx*)
@@ -238,5 +238,4 @@ SECTIONS
   }
 
   .ARM.attributes 0 : { *(.ARM.attributes) }
- 	ExtFlashSection : { *(ExtFlashSection) } >QUADSPI
 }
