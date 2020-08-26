@@ -62,7 +62,7 @@ MEMORY
   RAM (xrw)   : ORIGIN = 0x20000000, LENGTH = 320K
   FLASH (rxw)  : ORIGIN = 0x08000000, LENGTH = 1024K
   SDRAM (xrw)     : ORIGIN = 0xC0000000, LENGTH = 8M 
-  QUADSPI (xrw)    : ORIGIN = 0x90000000,  LENGTH = 16M
+ /* QUADSPI (xrw)    : ORIGIN = 0x90000000,  LENGTH = 16M */
 }
 
 /* Define output sections */
@@ -225,7 +225,7 @@ SECTIONS
     *(.Dump_output_buffer*)
     . = ALIGN(32);
     
-  } > QUADSPI
+  } > SDRAM
   
   
 
