@@ -34,7 +34,7 @@
  */
  
 /* Private defines -----------------------------------------------------------*/
-#define SDRAM_BANK_SIZE   (8 * 1024 * 1024)  /*!< IS42S32800J has 4x8MB banks */
+#define SDRAM_BANK_SIZE   (4 * 1024 * 1024)  /*!< IS42S32800J has 4x8MB banks */
 
 /* Global variables ----------------------------------------------------------*/
 DisplayContext_TypeDef Display_Context;
@@ -111,6 +111,9 @@ void DISPLAY_Init(DisplayContext_TypeDef* Display_Context_Ptr)
   __FMC_NORSRAM_DISABLE(FMC_Bank1, FMC_NORSRAM_BANK1);
 
   BSP_LCD_Init();/*by default, 0xC0000000 is used as start address for lcd frame buffer*/
+  BSP_LCD_LayerDefaultInit(0, 0xC0000000);
+  BSP_LCD_SelectLayer(0);
+  BSP_LCD_DisplayOn();
 
   config.X0          = 0;
   config.X1          = LCD_DEFAULT_WIDTH;
@@ -119,13 +122,13 @@ void DISPLAY_Init(DisplayContext_TypeDef* Display_Context_Ptr)
   config.PixelFormat = LTDC_PIXEL_FORMAT_ARGB8888;
   config.Address     = (uint32_t)Display_Context_Ptr->lcd_frame_read_buff;/*lcd_frame_read_buff buffer used as lcd frame buffer*/
   //BSP_LCD_ConfigLayer(0, 0, &config);//overwrite config
+ MX_LTDC_ConfigLayer(&hlcd_ltdc, 0, &config);
   
   GUI_SetFuncDriver(&LCD_Drv);
-  GUI_SetLayer(0);
   
   GUI_SetBackColor(GUI_COLOR_BLACK);
   GUI_SetTextColor(GUI_COLOR_WHITE);
-  GUI_SetFont(&Font24);
+  GUI_SetFont(&Font20);
   
   /*Use lcd_frame_write_buff buffer for display composition*/
   hlcd_ltdc.LayerCfg[Lcd_Ctx[0].ActiveLayer].FBStartAdress=(uint32_t)Display_Context_Ptr->lcd_frame_write_buff;
@@ -144,21 +147,21 @@ void DISPLAY_Init(DisplayContext_TypeDef* Display_Context_Ptr)
 int DISPLAY_WelcomeScreen(DisplayContext_TypeDef* Display_Context_Ptr)
 {
   int magic_menu = 0;
-  GUI_Clear(GUI_COLOR_BLACK);
+  BSP_LCD_Clear(LCD_COLOR_BLACK);
 
   /* Draw logos.*/
   BSP_LCD_DrawBitmap(100, 77, (uint8_t *)stlogo);
-  BSP_LCD_DrawBitmap(620, 65, (uint8_t *)stm32h7logo);
+  //BSP_LCD_DrawBitmap(620, 65, (uint8_t *)stm32h7logo);
 
   /*Display welcome message*/
-  GUI_DisplayStringAt(0, LINE(6), (uint8_t *)"VISION1 Function Pack", CENTER_MODE);
-  GUI_DisplayStringAt(0, LINE(7), (uint8_t *)"V2.0.0", CENTER_MODE);
-  GUI_DisplayStringAt(0, LINE(10), (uint8_t *)WELCOME_MSG_0, CENTER_MODE);
-  GUI_DisplayStringAt(0, LINE(11), (uint8_t *)WELCOME_MSG_2, CENTER_MODE);
-  GUI_DisplayStringAt(0, LINE(12), (uint8_t *)WELCOME_MSG_1, CENTER_MODE);
-  GUI_DisplayStringAt(0, LINE(13), (uint8_t *)WELCOME_MSG_4, CENTER_MODE);
-  GUI_DisplayStringAt(0, LINE(14), (uint8_t *)WELCOME_MSG_5, CENTER_MODE);
-  GUI_DisplayStringAt(0, LINE(15), (uint8_t *)WELCOME_MSG_3, CENTER_MODE);
+  BSP_LCD_DisplayStringAt(0, 80, (uint8_t *)"VISION1 Function Pack on F746G", CENTER_MODE);
+  BSP_LCD_DisplayStringAt(0, 100, (uint8_t *)"V2.0.0", CENTER_MODE);
+  BSP_LCD_DisplayStringAt(0, 120, (uint8_t *)WELCOME_MSG_0, CENTER_MODE);
+  BSP_LCD_DisplayStringAt(0, 160, (uint8_t *)WELCOME_MSG_2, CENTER_MODE);
+  BSP_LCD_DisplayStringAt(0, 190, (uint8_t *)WELCOME_MSG_1, CENTER_MODE);
+  BSP_LCD_DisplayStringAt(0, 210, (uint8_t *)WELCOME_MSG_4, CENTER_MODE);
+  BSP_LCD_DisplayStringAt(0, 230, (uint8_t *)WELCOME_MSG_5, CENTER_MODE);
+  BSP_LCD_DisplayStringAt(0, 250, (uint8_t *)WELCOME_MSG_3, CENTER_MODE);
 
   DISPLAY_Refresh(Display_Context_Ptr);
 
