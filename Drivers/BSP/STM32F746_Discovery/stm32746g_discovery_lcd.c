@@ -218,6 +218,7 @@ uint8_t BSP_LCD_Init(void)
   BSP_SDRAM_Init();
 #endif
     
+ BSP_SDRAM_Init();
   /* Initialize the font */
   BSP_LCD_SetFont(&LCD_DEFAULT_FONT);
   
