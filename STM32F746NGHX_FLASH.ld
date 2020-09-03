@@ -54,15 +54,15 @@ ENTRY(Reset_Handler)
  _estack = 0x20050000;    /* end of AXIRAM */
 /* Generate a link error if heap and stack don't fit into RAM */
 _Min_Heap_Size = 0x200 ; /* required amount of heap  */
-_Min_Stack_Size = 0x400 ; /* required amount of stack */
+_Min_Stack_Size = 0x800 ; /* required amount of stack */
 
 /* Specify the memory areas */
 MEMORY
 {
   RAM (xrw)   : ORIGIN = 0x20000000, LENGTH = 320K
-  FLASH (rxw)  : ORIGIN = 0x08000000, LENGTH = 1024K
-  SDRAM (xrw)     : ORIGIN = 0xC0000000, LENGTH = 8M 
- /* QUADSPI (xrw)    : ORIGIN = 0x90000000,  LENGTH = 16M */
+  FLASH (rx)  : ORIGIN = 0x08000000, LENGTH = 1024K
+  SDRAM (xrw) : ORIGIN = 0xC0000000, LENGTH = 8M
+  ITCMRAM (xrw) : ORIGIN = 0x00000000, LENGTH = 16K
 }
 
 /* Define output sections */
@@ -75,6 +75,7 @@ SECTIONS
     KEEP(*(.isr_vector)) /* Startup code */
     . = ALIGN(4);
   } >FLASH
+
 
   /* Remaining .rodata goes into FLASH */
   .rodata2 :
@@ -101,7 +102,7 @@ SECTIONS
     _etext = .;        /* define a global symbols at end of code */
   } >FLASH
 
-  /* Constant data goes into FLASH_BK1 */
+  /* Constant data goes into FLASH */
   .rodata :
   {
     . = ALIGN(4);
@@ -168,7 +169,7 @@ SECTIONS
     . = ALIGN(4);
     _ebss = .;         /* define a global symbol at bss end */
     __bss_end__ = _ebss;
-  } >FLASH
+  } >ITCMRAM
 
   /* User_heap_stack section, used to check that there is enough RAM left */
   ._user_heap_stack :
@@ -187,20 +188,9 @@ SECTIONS
     *(.Vision_App_SingleOverlay)
     *(.Vision_App_SingleOverlay.*)
     . = ALIGN(4);
-  } >RAM
+  } > RAM
 
-  .sram_section (NOLOAD):
-  {
-    . = ALIGN(32);
-    *(.uart_tx_buffer)
-    *(.uart_tx_buffer.*)
-    . = ALIGN(32);
-    *(.uart_rx_buffer)
-    *(.uart_rx_buffer.*)
-    . = ALIGN(4);
-  } >RAM
-
-   .sdram_section ():
+  .sdram_section (NOLOAD):
   {
     . = ALIGN(32);
     *(.Validation_image_buffer)
@@ -225,7 +215,7 @@ SECTIONS
     *(.Dump_output_buffer*)
     . = ALIGN(32);
     
-  } > SDRAM
+  } > SDRAM 
   
   
 
