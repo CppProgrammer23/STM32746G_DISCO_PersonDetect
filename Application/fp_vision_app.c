@@ -337,7 +337,7 @@ static void App_Output_Display(AppContext_TypeDef *App_Context_Ptr)
 static void App_Context_Init(AppContext_TypeDef *App_Context_Ptr)
 {  
   App_Context_Ptr->Operating_Mode=NOMINAL;
-  App_Context_Ptr->run_loop=1;
+  App_Context_Ptr->run_loop=0;
   
   /*Initializes app pointers to contextx*/
   App_Context_Ptr->Camera_ContextPtr=&CameraContext;
