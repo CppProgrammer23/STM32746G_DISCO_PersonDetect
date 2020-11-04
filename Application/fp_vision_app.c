@@ -22,6 +22,7 @@
 #include "ai_utilities.h"
 #include <stdio.h>
 #include <string.h>
+#include "stm32746g_discovery_lcd.h"
 
 /** @addtogroup STM32H747I-DISCO_Applications
  * @{
@@ -55,14 +56,12 @@ AppContext_TypeDef App_Context;
    #define AI_FP_GLOBAL_BUFFER_SIZE (CAM_FRAME_BUFFER_SIZE + MAX(AI_INPUT_BUFFER_SIZE, CAM_FRAME_BUFFER_SIZE)) 
   #endif
  #else /*MEMORY_SCHEME == FULL_EXTERNAL*/
+#define AI_FP_GLOBAL_BUFFER_SIZE (CAM_FRAME_BUFFER_SIZE + MAX(AI_ACTIVATION_BUFFER_SIZE, CAM_FRAME_BUFFER_SIZE))
   #ifdef AI_NETWORK_INPUTS_IN_ACTIVATIONS
    #define AI_FP_GLOBAL_BUFFER_SIZE (CAM_FRAME_BUFFER_SIZE + MAX(AI_ACTIVATION_BUFFER_SIZE, CAM_FRAME_BUFFER_SIZE))
 
-
-/*
-  #else
+ #else
    #define AI_FP_GLOBAL_BUFFER_SIZE (CAM_FRAME_BUFFER_SIZE + MAX(AI_ACTIVATION_BUFFER_SIZE + AI_INPUT_BUFFER_SIZE, CAM_FRAME_BUFFER_SIZE))
-*/
 
   #endif
  #endif
@@ -124,14 +123,11 @@ AppContext_TypeDef App_Context;
   #else
     #error Unknown compiler
   #endif
-#define AI_FP_GLOBAL_BUFFER_SIZE (CAM_FRAME_BUFFER_SIZE + MAX(AI_ACTIVATION_BUFFER_SIZE, CAM_FRAME_BUFFER_SIZE))
 	uint8_t ai_fp_global_memory[AI_FP_GLOBAL_BUFFER_SIZE];
-
 #else
  #error Please check definition of MEMORY_SCHEME define
 
 #endif
-//#define AI_FP_GLOBAL_BUFFER_SIZE (CAM_FRAME_BUFFER_SIZE + MAX(AI_ACTIVATION_BUFFER_SIZE, CAM_FRAME_BUFFER_SIZE))
 
 
 
@@ -155,7 +151,7 @@ static void CameraCaptureBuff2LcdBuff_Copy(AppContext_TypeDef *App_Context_Ptr)
 {
   int red_blue_swap=0;
   
-  GUI_Clear(GUI_COLOR_BLACK);
+  BSP_LCD_Clear(LCD_COLOR_BLACK);
   
   if((App_Context_Ptr->Operating_Mode == DUMP)&& (App_Context_Ptr->Test_ContextPtr->DumpContext.Dump_FrameSource == SDCARD_FILE))
   {
@@ -186,9 +182,9 @@ static void CameraCaptureBuff2LcdBuff_Copy(AppContext_TypeDef *App_Context_Ptr)
                          0, 
                          CAM_RES_WIDTH, CAM_RES_HEIGHT, 
                          CAM_RES_WIDTH, 
-                         DMA2D_INPUT_RGB565, 
-                         DMA2D_OUTPUT_RGB888, 
-                         1, 
+                         DMA2D_INPUT_RGB565,
+                         DMA2D_OUTPUT_RGB888,
+                         0,
                          0);
       
       /*Coherency purpose: Invalidate the source buffer area in L1 D-Cache before CPU reading*/
@@ -224,13 +220,13 @@ static void CameraCaptureBuff2LcdBuff_Copy(AppContext_TypeDef *App_Context_Ptr)
   else
   { 
     /*DMA2D transfer from Camera capture buffer to LCD write buffer*/
-    DISPLAY_Copy2LCDWriteBuffer(App_Context_Ptr->Display_ContextPtr, (uint32_t *)(App_Context_Ptr->Camera_ContextPtr->camera_capture_buffer), 
-                                (LCD_RES_WIDTH - CAM_RES_WIDTH) >> 1, 
-                                (LCD_RES_HEIGHT - CAM_RES_HEIGHT) >> 1, 
+    DISPLAY_Copy2LCDWriteBuffer(App_Context_Ptr->Display_ContextPtr, (uint32_t *)(App_Context_Ptr->Camera_ContextPtr->camera_capture_buffer),
+    							(LCD_RES_WIDTH - CAM_RES_WIDTH) >> 1,
+								(LCD_RES_HEIGHT - CAM_RES_HEIGHT) >> 1,
                                 CAM_RES_WIDTH, 
                                 CAM_RES_HEIGHT, 
-                                DMA2D_INPUT_RGB565,
-                             red_blue_swap);
+								DMA2D_INPUT_RGB888, //DMA2D_INPUT_RGB888
+								red_blue_swap);
   }
 }
 
@@ -239,13 +235,13 @@ static void CameraCaptureBuff2LcdBuff_Copy(AppContext_TypeDef *App_Context_Ptr)
  * @param  None
  * @retval None
  */
+extern UART_HandleTypeDef huart1;
 static void App_Output_Display(AppContext_TypeDef *App_Context_Ptr)
 {
   static uint32_t occurrence_number = NN_OUTPUT_DISPLAY_REFRESH_RATE;
   static uint32_t display_mode = 0;
 
   occurrence_number--;
-
   if (occurrence_number == 0)
   {
     char msg[70];
@@ -281,32 +277,36 @@ static void App_Output_Display(AppContext_TypeDef *App_Context_Ptr)
         break;
       }
 
-      GUI_Clear(GUI_COLOR_BLACK);
-      GUI_DisplayStringAt(0, LINE(9), (uint8_t*)msg, CENTER_MODE);
+      BSP_LCD_Clear(LCD_COLOR_BLACK);
+      BSP_LCD_DisplayStringAt(0, 150, (uint8_t*)msg, CENTER_MODE);
       CAMERA_Set_MirrorFlip(App_Context_Ptr->Camera_ContextPtr, mirror_flip);
 
       sprintf(msg, "Please release button");
-      GUI_DisplayStringAt(0, LINE(11), (uint8_t*)msg, CENTER_MODE);
+      BSP_LCD_DisplayStringAt(0, 180, (uint8_t*)msg, CENTER_MODE);
       DISPLAY_Refresh(App_Context_Ptr->Display_ContextPtr);
 
-      /*Wait for PB release*/
+      //Wait for PB release
       while (BSP_PB_GetState(BUTTON_WAKEUP) != RESET);
       HAL_Delay(200);
 
-      GUI_Clear(GUI_COLOR_BLACK);
+      BSP_LCD_Clear(LCD_COLOR_BLACK);
     }
-
-    for (int i = 0; i < NN_TOP_N_DISPLAY; i++)
+    for (int i = 0; i < NN_TOP_N_DISPLAY; i++) //
     {
+      char ms[17];
       sprintf(msg, "%s %.0f%%", NN_OUTPUT_CLASS_LIST[App_Context_Ptr->ranking[i]], *((float*)(App_Context_Ptr->Ai_ContextPtr->nn_output_buffer)+i) * 100);
-      GUI_DisplayStringAt(0, LINE(DISPLAY_TOP_N_LAST_LINE - NN_TOP_N_DISPLAY + i), (uint8_t *)msg, CENTER_MODE);
+      BSP_LCD_DisplayStringAt(0, 180, (uint8_t *)msg, CENTER_MODE);
+      strcpy(ms,msg);
+      strcat(ms,"\n\r");
+      HAL_UART_Transmit(&huart1, (uint8_t*)ms, sizeof(ms), 100);
     }
 
     sprintf(msg, "Inference: %ldms", App_Context_Ptr->nn_inference_time);
-    GUI_DisplayStringAt(0, LINE(DISPLAY_INFER_TIME_LINE), (uint8_t *)msg, CENTER_MODE);
+    BSP_LCD_DisplayStringAt(0, 220, (uint8_t *)msg, CENTER_MODE);
 
     sprintf(msg, "Fps: %.1f", 1000.0F / (float)(App_Context_Ptr->Utils_ContextPtr->ExecTimingContext.Tfps));
-    GUI_DisplayStringAt(0, LINE(DISPLAY_FPS_LINE), (uint8_t *)msg, CENTER_MODE);
+    BSP_LCD_DisplayStringAt(0, 250, (uint8_t *)msg, CENTER_MODE);
+
 
     DISPLAY_Refresh(App_Context_Ptr->Display_ContextPtr);
 
@@ -337,7 +337,7 @@ static void App_Output_Display(AppContext_TypeDef *App_Context_Ptr)
 static void App_Context_Init(AppContext_TypeDef *App_Context_Ptr)
 {  
   App_Context_Ptr->Operating_Mode=NOMINAL;
-  App_Context_Ptr->run_loop=0;
+  App_Context_Ptr->run_loop=1;
   
   /*Initializes app pointers to contextx*/
   App_Context_Ptr->Camera_ContextPtr=&CameraContext;
@@ -349,7 +349,7 @@ static void App_Context_Init(AppContext_TypeDef *App_Context_Ptr)
   
   /*Initializes app specific context's parameters */
   /**Camera**/
-  App_Context_Ptr->Camera_ContextPtr->mirror_flip=CAMERA_MIRRORFLIP_FLIP;
+  App_Context_Ptr->Camera_ContextPtr->mirror_flip=CAMERA_MIRRORFLIP_NONE;
   App_Context_Ptr->Camera_ContextPtr->AppCtxPtr =App_Context_Ptr;
   
   /**Utilities**/
@@ -375,7 +375,7 @@ static void App_Context_Init(AppContext_TypeDef *App_Context_Ptr)
 
   /**Preproc**/
   App_Context_Ptr->Preproc_ContextPtr->AppCtxPtr =App_Context_Ptr;
-  App_Context_Ptr->Preproc_ContextPtr->Pfc_Dst_Img.format=PXFMT_GRAY8;
+  App_Context_Ptr->Preproc_ContextPtr->Pfc_Dst_Img.format=PXFMT_RGB888; //GRAY8
 }
 
 /**
@@ -448,7 +448,7 @@ void APP_StartNewFrameAcquisition(AppContext_TypeDef *App_Context_Ptr)
      App_Context_Ptr->Operating_Mode == CAPTURE || 
        ((App_Context_Ptr->Operating_Mode == DUMP)&& (App_Context_Ptr->Test_ContextPtr->DumpContext.Dump_FrameSource != SDCARD_FILE)))
   {
- //   __disable_irq();
+    //__disable_irq();//
     App_Context_Ptr->Camera_ContextPtr->vsync_it=0;
     
     App_Context_Ptr->Utils_ContextPtr->ExecTimingContext.tcapturestart1=HAL_GetTick();
@@ -457,7 +457,7 @@ void APP_StartNewFrameAcquisition(AppContext_TypeDef *App_Context_Ptr)
     
     /***Resume the camera capture in NOMINAL mode****/
     BSP_CAMERA_Resume();
-  //  __enable_irq();
+    //__enable_irq();
   }
 }
 
@@ -489,8 +489,8 @@ void APP_NetworkInference(AppContext_TypeDef *App_Context_Ptr)
   TestRunCtxt_Ptr->src_height_size=ai_get_input_height();
   TestRunCtxt_Ptr->src_size=AI_NET_INPUT_SIZE;
   TestRunCtxt_Ptr->PerformCapture=1;
-  TestRunCtxt_Ptr->DumpFormat=GRAY8;
-  TestRunCtxt_Ptr->rb_swap=0;
+  TestRunCtxt_Ptr->DumpFormat=BMP888; //GRAY8
+  TestRunCtxt_Ptr->rb_swap=0;//1
   TEST_Run(App_Context_Ptr->Test_ContextPtr, App_Context_Ptr->Operating_Mode);
  
   tinf_start=UTILS_GetTimeStamp(App_Context_Ptr->Utils_ContextPtr);
